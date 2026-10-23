@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Control Multi-San Pro</title>
+  
+  <!-- Enlace al Manifiesto (Comportamiento de App de Tienda) -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Configuración PWA para Móvil -->
+  <meta name="theme-color" content="#09090b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mis Sanes">
+
+  <!-- Tailwind CSS & FontAwesome Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    body { 
+      background-color: #09090b; 
+      color: #f4f4f5;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      font-weight: 600;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    .gold-gradient-bg {
+      background: linear-gradient(135deg, #d4af37 0%, #aa7c11 100%);
+    }
+    .gold-gradient-text {
+      background: linear-gradient(135deg, #f7e089 0%, #d4af37 50%, #a3780a 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .gold-shadow {
+      box-shadow: 0 6px 20px -2px rgba(212, 175, 55, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    }
+    .active-tab {
+      color: #d4af37;
+      font-weight: 700;
+    }
+    .btn-3d {
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    .btn-3d:active {
+      transform: scale(0.98) translateY(2px);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), inset 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+    .san-card-active {
+      border-color: rgba(212, 175, 55, 0.8) !important;
+      background: linear-gradient(145deg, #18181b 0%, #09090b 100%);
+      box-shadow: 0 0 18px rgba(212, 175, 55, 0.25), inset 0 1px 1px rgba(247, 224, 137, 0.2);
+    }
+    .san-card-inactive {
+      border-color: rgba(39, 39, 42, 0.9);
+      background: linear-gradient(145deg, #141417 0%, #09090b 100%);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+  </style>
+</head>
+<body class="pb-24 min-h-screen flex flex-col justify-between selection:bg-amber-500/30 selection:text-amber-200">
+
+  <!-- Encabezado Superior -->
+  <header class="bg-zinc-950/90 border-b border-amber-500/30 text-white p-4 sticky top-0 z-40 backdrop-blur-md shadow-xl">
+    <div class="max-w-md mx-auto flex justify-between items-center gap-2">
+      <div class="flex items-center gap-2.5 overflow-hidden">
+        <div class="gold-gradient-bg p-2 rounded-xl text-zinc-950 shadow-md shrink-0">
+          <i class="fa-solid fa-vault text-lg"></i>
+        </div>
+        <div class="truncate">
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm font-extrabold leading-none gold-gradient-text truncate" id="header-san-title">Gestor de Sanes</h1>
+            <!-- Indicador de Almacenamiento Interno -->
+            <span id="auto-save-indicator" class="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full flex items-center gap-1 transition-opacity opacity-0">
+              <i class="fa-solid fa-mobile-screen text-[8px]"></i> Almacenado
+            </span>
+          </div>
+          <p class="text-[10px] text-zinc-400 mt-0.5" id="header-san-subtitle">Selecciona o crea un San</p>
+        </div>
+      </div>
+      <button onclick="switchTab('sanes')" class="btn-3d text-xs bg-zinc-900 border border-amber-500/40 px-3 py-1.5 rounded-full text-amber-300 flex items-center gap-1.5 shrink-0">
+        <i class="fa-solid fa-layer-group text-amber-400 text-xs"></i> Mis Sanes
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="max-w-md mx-auto p-4 w-full flex-grow">
+
+    <!-- PESTAÑA 0: LISTA / PANEL DE SANES -->
+    <div id="tab-sanes" class="tab-page space-y-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-lg font-bold gold-gradient-text">Tus Sanes Activos</h2>
+          <p class="text-xs text-zinc-400">Toca un San para abrirlo o gestionarlo</p>
+        </div>
+        <button onclick="abrirModalNuevoSan()" class="btn-3d gold-gradient-bg text-zinc-950 px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5">
+          <i class="fa-solid fa-plus text-xs"></i> Nuevo San
+        </button>
+      </div>
+
+      <div id="lista-sanes-cards" class="space-y-3"></div>
+    </div>
+
+    <!-- PESTAÑA 1: REGISTRAR PARTICIPANTE (Wizard) -->
+    <div id="tab-registrar" class="tab-page space-y-4 hidden">
+      <div class="bg-zinc-900/90 rounded-2xl border border-amber-500/30 p-3.5 shadow-sm flex flex-col space-y-2">
+        <div class="flex justify-between items-center border-b border-zinc-800 pb-2">
+          <span class="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 truncate">
+            <i class="fa-solid fa-circle-dot text-[9px] text-emerald-400"></i> San Activo: <span id="info-san-nombre" class="text-zinc-100 font-extrabold">-</span>
+          </span>
+          <button onclick="configurarSanModal()" class="text-[10px] text-amber-300 underline font-semibold shrink-0">Editar Reglas</button>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+          <div>
+            <p class="text-zinc-500 text-[10px]">Pozo Total del San:</p>
+            <p id="info-monto-san" class="font-bold text-emerald-400 text-sm">$0</p>
+          </div>
+          <div>
+            <p class="text-zinc-500 text-[10px]">Frecuencia de Pago:</p>
+            <p id="info-frecuencia" class="font-bold text-amber-300 text-sm">Cada 7 días</p>
+          </div>
+          <div>
+            <p class="text-zinc-500 text-[10px]">Fecha de Inicio:</p>
+            <p id="info-fecha-inicio" class="font-semibold text-zinc-200 text-[11px]">-</p>
+          </div>
+          <div>
+            <p class="text-zinc-500 text-[10px]">Cuota Calc. / Participante:</p>
+            <p id="info-cuota-sugerida" class="font-bold text-amber-400">$0 / periodo</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-zinc-900/90 rounded-2xl border border-amber-500/40 p-5 gold-shadow">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h2 class="text-base font-bold gold-gradient-text" id="wizard-title">Nuevo Participante</h2>
+            <p class="text-xs text-zinc-400" id="wizard-subtitle">Paso 1 de 4</p>
+          </div>
+          <span class="text-xs font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-full" id="wizard-step-badge">25%</span>
+        </div>
+
+        <div class="w-full bg-zinc-800 h-2 rounded-full mb-6 overflow-hidden border border-zinc-700">
+          <div id="progress-bar" class="gold-gradient-bg h-full w-1/4 transition-all duration-300 rounded-full"></div>
+        </div>
+
+        <div class="flex justify-between items-center mb-6 px-2">
+          <div class="step-dot flex flex-col items-center gap-1" data-step="1">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold gold-gradient-bg text-zinc-950 shadow-md">1</div>
+            <span class="text-[10px] font-medium text-amber-400">Nombre</span>
+          </div>
+          <div class="h-[2px] bg-zinc-800 flex-grow mx-1 -mt-4"></div>
+          <div class="step-dot flex flex-col items-center gap-1" data-step="2">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-zinc-800 text-zinc-500 border border-zinc-700">2</div>
+            <span class="text-[10px] font-medium text-zinc-500">Teléfono</span>
+          </div>
+          <div class="h-[2px] bg-zinc-800 flex-grow mx-1 -mt-4"></div>
+          <div class="step-dot flex flex-col items-center gap-1" data-step="3">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-zinc-800 text-zinc-500 border border-zinc-700">3</div>
+            <span class="text-[10px] font-medium text-zinc-500">Turno/Cuota</span>
+          </div>
+          <div class="h-[2px] bg-zinc-800 flex-grow mx-1 -mt-4"></div>
+          <div class="step-dot flex flex-col items-center gap-1" data-step="4">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-zinc-800 text-zinc-500 border border-zinc-700">4</div>
+            <span class="text-[10px] font-medium text-zinc-500">Listo</span>
+          </div>
+        </div>
+
+        <form id="wizardForm" onsubmit="return false;">
+          <div id="step-1" class="step-content space-y-3">
+            <label class="block text-xs font-semibold text-amber-300/90 uppercase tracking-wider">¿Cómo se llama el participante?</label>
+            <div class="relative">
+              <i class="fa-solid fa-user absolute left-3.5 top-3.5 text-zinc-500 text-sm"></i>
+              <input type="text" id="nombre" placeholder="Ej. María Pérez" class="w-full pl-10 pr-4 py-3 text-sm bg-zinc-950 border border-amber-500/30 text-white placeholder-zinc-600 rounded-xl focus:outline-none focus:border-amber-400" required>
+            </div>
+          </div>
+
+          <div id="step-2" class="step-content space-y-3 hidden">
+            <label class="block text-xs font-semibold text-amber-300/90 uppercase tracking-wider">Número de WhatsApp</label>
+            <div class="relative">
+              <i class="fa-brands fa-whatsapp absolute left-3.5 top-3.5 text-zinc-500 text-base"></i>
+              <input type="tel" id="telefono" placeholder="Ej. +584121234567" class="w-full pl-10 pr-4 py-3 text-sm bg-zinc-950 border border-amber-500/30 text-white placeholder-zinc-600 rounded-xl focus:outline-none focus:border-amber-400" required>
+            </div>
+          </div>
+
+          <div id="step-3" class="step-content space-y-4 hidden">
+            <div>
+              <label class="block text-xs font-semibold text-amber-300/90 uppercase tracking-wider mb-2">Número de Turno asignado</label>
+              <div class="relative">
+                <i class="fa-solid fa-list-ol absolute left-3.5 top-3.5 text-zinc-500 text-sm"></i>
+                <input type="number" id="turno" placeholder="Ej. 1" min="1" class="w-full pl-10 pr-4 py-3 text-sm bg-zinc-950 border border-amber-500/30 text-white placeholder-zinc-600 rounded-xl focus:outline-none focus:border-amber-400" required>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <label class="block text-xs font-semibold text-amber-300/90 uppercase tracking-wider">Monto de la Cuota ($)</label>
+                <div class="flex gap-1">
+                  <button type="button" onclick="abrirModalCalculadora()" class="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded hover:bg-emerald-500/20"><i class="fa-solid fa-calculator mr-1"></i>Calcular</button>
+                  <button type="button" onclick="usarCuotaCalculada()" class="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded hover:bg-amber-500/20">Auto ($<span id="label-cuota-auto">0</span>)</button>
+                </div>
+              </div>
+              <div class="relative">
+                <i class="fa-solid fa-dollar-sign absolute left-3.5 top-3.5 text-zinc-500 text-sm"></i>
+                <input type="number" id="monto" placeholder="Ej. 50" min="1" class="w-full pl-10 pr-4 py-3 text-sm bg-zinc-950 border border-amber-500/30 text-white placeholder-zinc-600 rounded-xl focus:outline-none focus:border-amber-400" required>
+              </div>
+            </div>
+          </div>
+
+          <div id="step-4" class="step-content space-y-4 hidden">
+            <div class="bg-zinc-950 border border-amber-500/40 rounded-xl p-4 space-y-2.5">
+              <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider border-b border-zinc-800 pb-2">Confirmar Datos</h3>
+              <div class="flex justify-between items-center text-sm">
+                <span class="text-zinc-400">Nombre:</span>
+                <span id="summary-nombre" class="font-bold text-zinc-100">-</span>
+              </div>
+              <div class="flex justify-between items-center text-sm">
+                <span class="text-zinc-400">Teléfono:</span>
+                <span id="summary-telefono" class="font-bold text-zinc-100">-</span>
+              </div>
+              <div class="flex justify-between items-center text-sm">
+                <span class="text-zinc-400">Turno:</span>
+                <span id="summary-turno" class="font-bold text-amber-300 bg-zinc-900 px-2 py-0.5 rounded border border-amber-500/30">#-</span>
+              </div>
+              <div class="flex justify-between items-center text-sm">
+                <span class="text-zinc-400">Cuota por periodo:</span>
+                <span id="summary-monto" class="font-bold text-emerald-400">$0</span>
+              </div>
+              <div class="flex justify-between items-center text-sm">
+                <span class="text-zinc-400">Fecha Estimada Cobro:</span>
+                <span id="summary-fecha-cobro" class="font-semibold text-amber-300 text-xs text-right">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 mt-8 pt-4 border-t border-zinc-800">
+            <button type="button" id="btn-prev" onclick="changeStep(-1)" class="w-1/3 py-3 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold rounded-xl text-sm transition hidden flex items-center justify-center gap-1 border border-zinc-700">
+              <i class="fa-solid fa-arrow-left text-xs"></i> Anterior
+            </button>
+            <button type="button" id="btn-next" onclick="changeStep(1)" class="w-full py-3 px-4 btn-3d gold-gradient-bg text-zinc-950 font-extrabold rounded-xl text-sm transition flex items-center justify-center gap-1">
+              Siguiente <i class="fa-solid fa-arrow-right text-xs"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- PESTAÑA 2: CONTROL DE PAGOS Y ABONOS -->
+    <div id="tab-pagos" class="tab-page space-y-4 hidden">
+      <div class="flex justify-between items-center px-1">
+        <div>
+          <h2 class="text-base font-bold gold-gradient-text" id="pagos-san-nombre">Control de Pagos</h2>
+          <p class="text-xs text-zinc-400">Administra abonos e historial de cuotas</p>
+        </div>
+        <div class="flex gap-1.5">
+          <button onclick="abrirModalCalculadora()" class="btn-3d bg-zinc-900 border border-emerald-500/30 text-emerald-400 px-2.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0" title="Calculadora de Cuotas">
+            <i class="fa-solid fa-calculator text-xs"></i>
+          </button>
+          <button onclick="imprimirPlanilla()" class="btn-3d bg-zinc-900 border border-amber-500/30 text-amber-300 px-2.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1 shrink-0" title="Imprimir / Guardar PDF">
+            <i class="fa-solid fa-print text-xs"></i>
+          </button>
+          <button onclick="abrirModalClienteRapido()" class="btn-3d gold-gradient-bg text-zinc-950 px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shrink-0">
+            <i class="fa-solid fa-user-plus text-xs"></i> + Cliente
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center px-1 text-xs text-zinc-400 border-b border-zinc-800 pb-2">
+        <span id="contadorClientes" class="text-xs font-bold bg-amber-500/10 border border-amber-500/30 text-amber-300 px-2.5 py-1 rounded-full">0 registrados</span>
+        <button onclick="switchTab('registrar')" class="text-amber-300 underline font-semibold">Usar Asistente Wizard</button>
+      </div>
+
+      <div id="listaParticipantes" class="space-y-3"></div>
+    </div>
+
+    <!-- PESTAÑA 3: RESUMEN Y MÉTRICAS -->
+    <div id="tab-resumen" class="tab-page space-y-4 hidden">
+      <div>
+        <h2 class="text-base font-bold gold-gradient-text">Estadísticas e Información</h2>
+        <p class="text-xs text-zinc-400">Balance del San activo y respaldos</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-zinc-900/90 p-4 rounded-2xl border border-amber-500/30 shadow-sm flex flex-col justify-between">
+          <div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-sm mb-2">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <div>
+            <p class="text-xs text-zinc-400 font-medium">Cobrado</p>
+            <p id="totalCobrado" class="text-2xl font-black text-emerald-400">$0</p>
+          </div>
+        </div>
+
+        <div class="bg-zinc-900/90 p-4 rounded-2xl border border-amber-500/30 shadow-sm flex flex-col justify-between">
+          <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-sm mb-2">
+            <i class="fa-solid fa-clock"></i>
+          </div>
+          <div>
+            <p class="text-xs text-zinc-400 font-medium">Pendiente</p>
+            <p id="totalPendiente" class="text-2xl font-black text-amber-400">$0</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-zinc-900/90 p-4 rounded-2xl border border-amber-500/30 shadow-sm">
+        <p class="text-xs text-zinc-400 font-medium mb-1">Monto Total Recaudado en esta Ronda</p>
+        <p id="totalGlobal" class="text-xl font-bold text-zinc-100">$0</p>
+        <div class="w-full bg-zinc-950 h-2 rounded-full mt-3 overflow-hidden border border-zinc-800">
+          <div id="progress-monto" class="bg-emerald-500 h-full w-0 transition-all duration-300"></div>
+        </div>
+      </div>
+
+      <div class="bg-zinc-900/90 p-4 rounded-2xl border border-amber-500/30 shadow-sm space-y-3">
+        <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Mantenimiento y Guardado de Planilla</h3>
+        <p class="text-xs text-zinc-400">Guarda una copia física o respalda todos los Sanes en tu dispositivo.</p>
+        <div class="flex flex-col gap-2 pt-1">
+          <button onclick="imprimirPlanilla()" class="btn-3d w-full bg-zinc-950 border border-amber-500/40 text-amber-300 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2">
+            <i class="fa-solid fa-file-pdf text-amber-400"></i> Imprimir / Guardar Planilla en PDF
+          </button>
+          <button onclick="exportarDatos()" class="btn-3d w-full bg-zinc-950 border border-amber-500/40 text-amber-300 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2">
+            <i class="fa-solid fa-file-arrow-down text-amber-400"></i> Descargar Respaldo JSON
+          </button>
+          <button onclick="borrarTodo()" class="btn-3d w-full bg-rose-950/40 border border-rose-800/50 text-rose-300 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2">
+            <i class="fa-solid fa-trash-can"></i> Limpiar todos los Sanes y Datos
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: AGREGAR ABONO / PAGO DE CUOTA -->
+  <div id="modal-abono" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-amber-500/40 rounded-2xl p-5 w-full max-w-sm space-y-4 gold-shadow">
+      <div class="flex justify-between items-center border-b border-zinc-800 pb-2">
+        <div>
+          <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-hand-holding-dollar mr-1"></i> Registrar Abono</h3>
+          <p class="text-[11px] text-zinc-400" id="abono-cliente-nombre">-</p>
+        </div>
+        <button onclick="cerrarModalAbono()" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-3 flex justify-between items-center">
+          <div>
+            <p class="text-[10px] text-zinc-500">Saldo Pendiente:</p>
+            <p id="abono-saldo-pendiente" class="text-lg font-bold text-amber-300">$0.00</p>
+          </div>
+          <button onclick="abonarSaldoTotal()" class="btn-3d text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg font-extrabold">Pagar Todo</button>
+        </div>
+
+        <div>
+          <label class="block text-zinc-300 mb-1 font-semibold">Monto que entrega el cliente ($)</label>
+          <input type="number" id="abono-monto-ingresado" min="0.01" step="0.01" placeholder="Ej. 10.00" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400">
+        </div>
+      </div>
+
+      <div class="flex gap-2 justify-end pt-2 border-t border-zinc-800">
+        <button onclick="cerrarModalAbono()" class="btn-3d py-2 px-4 bg-zinc-800 text-zinc-300 rounded-xl text-xs font-bold">Cancelar</button>
+        <button onclick="confirmarAbono()" class="btn-3d py-2 px-5 gold-gradient-bg text-zinc-950 rounded-xl text-xs font-extrabold">Registrar Abono</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CALCULADORA DE CUOTAS -->
+  <div id="modal-calculadora" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-amber-500/40 rounded-2xl p-5 w-full max-w-sm space-y-4 gold-shadow">
+      <div class="flex justify-between items-center border-b border-zinc-800 pb-2">
+        <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-calculator text-emerald-400 mr-1"></i> Calculadora de Cuotas</h3>
+        <button onclick="cerrarModalCalculadora()" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-zinc-300 mb-1 font-semibold">Monto Total a Diferir ($)</label>
+          <input type="number" id="calc-monto-total" min="1" placeholder="Ej. 100" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400" oninput="calcularCuotaIndividual()">
+        </div>
+
+        <div>
+          <label class="block text-zinc-300 mb-1 font-semibold">Número de Cuotas o Abonos</label>
+          <input type="number" id="calc-num-cuotas" min="1" value="2" placeholder="Ej. 2, 4, 5..." class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400" oninput="calcularCuotaIndividual()">
+        </div>
+
+        <div class="bg-zinc-950 border border-emerald-500/40 rounded-xl p-3 space-y-1 text-center">
+          <p class="text-[10px] text-zinc-400 uppercase tracking-wider">El cliente debe pagar por cada cuota:</p>
+          <p id="calc-resultado" class="text-2xl font-black text-emerald-400">$0.00</p>
+          <p id="calc-detalle" class="text-[10px] text-zinc-500">Monto dividido exactamente en 2 pagos iguales.</p>
+        </div>
+      </div>
+
+      <div class="flex gap-2 justify-end pt-2 border-t border-zinc-800">
+        <button onclick="cerrarModalCalculadora()" class="btn-3d py-2 px-4 bg-zinc-800 text-zinc-300 rounded-xl text-xs font-bold">Cerrar</button>
+        <button onclick="aplicarCuotaCalculada()" class="btn-3d py-2 px-4 gold-gradient-bg text-zinc-950 rounded-xl text-xs font-extrabold">Aplicar Cuota</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ENVIAR RECORDATORIO DE PAGO POR WHATSAPP -->
+  <div id="modal-recordatorio" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-amber-500/40 rounded-2xl p-5 w-full max-w-sm space-y-4 gold-shadow">
+      <div class="flex justify-between items-center border-b border-zinc-800 pb-2">
+        <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider"><i class="fa-brands fa-whatsapp text-emerald-400 mr-1"></i> Enviar Recordatorio</h3>
+        <button onclick="cerrarModalRecordatorio()" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <p class="text-zinc-300">Selecciona el tipo de recordatorio que deseas enviar a <span id="recordatorio-cliente-nombre" class="font-bold text-amber-300">-</span>:</p>
+        
+        <div class="space-y-2">
+          <button onclick="enviarRecordatorioWhatsApp('preventivo')" class="btn-3d w-full text-left p-3 bg-zinc-950 border border-zinc-800 rounded-xl space-y-1">
+            <p class="font-bold text-amber-300"><i class="fa-regular fa-bell mr-1"></i> Recordatorio Cortés (Previo)</p>
+            <p class="text-[10px] text-zinc-400">"Hola! Te recuerdo que tu cuota de San se aproxima..."</p>
+          </button>
+
+          <button onclick="enviarRecordatorioWhatsApp('vencimiento')" class="btn-3d w-full text-left p-3 bg-zinc-950 border border-zinc-800 rounded-xl space-y-1">
+            <p class="font-bold text-emerald-400"><i class="fa-solid fa-calendar-day mr-1"></i> Recordatorio Día de Cobro</p>
+            <p class="text-[10px] text-zinc-400">"Hola! Hoy corresponde la fecha de tu cuota..."</p>
+          </button>
+
+          <button onclick="enviarRecordatorioWhatsApp('urgente')" class="btn-3d w-full text-left p-3 bg-zinc-950 border border-zinc-800 rounded-xl space-y-1">
+            <p class="font-bold text-rose-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Recordatorio de Pago Pendiente</p>
+            <p class="text-[10px] text-zinc-400">"Hola, te escribo para verificar el pago pendiente de tu cuota..."</p>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t border-zinc-800">
+        <button onclick="cerrarModalRecordatorio()" class="btn-3d py-2 px-4 bg-zinc-800 text-zinc-300 rounded-xl text-xs font-bold">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: HISTORIAL DE PAGOS DEL PARTICIPANTE -->
+  <div id="modal-historial" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-amber-500/40 rounded-2xl p-5 w-full max-w-sm space-y-4 gold-shadow">
+      <div class="flex justify-between items-center border-b border-zinc-800 pb-2">
+        <div>
+          <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Historial de Pagos</h3>
+          <p class="text-[11px] text-zinc-400" id="historial-nombre-cliente">-</p>
+        </div>
+        <button onclick="cerrarModalHistorial()" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div id="historial-lista-pagos" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+
+      <div class="pt-2 border-t border-zinc-800 flex justify-end">
+        <button onclick="cerrarModalHistorial()" class="btn-3d py-2 px-5 gold-gradient-bg text-zinc-950 rounded-xl text-xs font-extrabold">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AGREGAR CLIENTE RÁPIDO -->
+  <div id="modal-cliente-rapido" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-amber-500/40 rounded-2xl p-5 w-full max-w-sm space-y-4 gold-shadow">
+      <div class="flex justify-between items-center border-b border-zinc-800 pb-2">
+        <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-user-plus mr-1"></i> Agregar Cliente Rápido</h3>
+        <button onclick="cerrarModalClienteRapido()" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-zinc-300 mb-1 font-semibold">Nombre del Cliente / Participante</label>
+          <input type="text" id="quick-nombre" placeholder="Ej. Carlos Rodríguez" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400">
+        </div>
+        <div>
+          <label class="block text-zinc-300 mb-1 font-semibold">Número de WhatsApp</label>
+          <input type="tel" id="quick-telefono" placeholder="Ej. +584121234567" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-zinc-300 mb-1 font-semibold">Turno #</label>
+            <input type="number" id="quick-turno" min="1" placeholder="Ej. 1" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400">
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-zinc-300 font-semibold">Monto Cuota ($)</label>
+              <button type="button" onclick="abrirModalCalculadora('quick')" class="text-[9px] text-emerald-400 underline">Calcular</button>
+            </div>
+            <input type="number" id="quick-monto" min="1" placeholder="Ej. 50" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400">
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-2 justify-end pt-2 border-t border-zinc-800">
+        <button onclick="cerrarModalClienteRapido()" class="btn-3d py-2 px-4 bg-zinc-800 text-zinc-300 rounded-xl text-xs font-bold">Cancelar</button>
+        <button onclick="guardarClienteRapido()" class="btn-3d py-2 px-5 gold-gradient-bg text-zinc-950 rounded-xl text-xs font-extrabold">Guardar Cliente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal CREAR NUEVO SAN -->
+  <div id="nuevo-san-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-amber-500/40 rounded-2xl p-5 w-full max-w-sm space-y-4 gold-shadow">
+      <div class="flex justify-between items-center border-b border-zinc-800 pb-2">
+        <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-circle-plus mr-1"></i> Crear Nuevo San</h3>
+        <button onclick="cerrarNuevoSanModal()" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-zinc-300 mb-1 font-semibold">Nombre del San</label>
+          <input type="text" id="nuevo-san-nombre" placeholder="Ej. San Familiar..." class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400">
+        </div>
+        <div>
+          <label class="block text-zinc-300 mb-1 font-semibold">Monto Total del Pozo ($)</label>
+          <input type="number" id="nuevo-san-monto-total" placeholder="Ej. 500" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400">
+        </div>
+        <div>
+          <label class="block text-zinc-300 mb-1 font-semibold">Frecuencia de Pago</label>
+          <select id="nuevo-san-frecuencia" onchange="toggleNuevoCustomDias()" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400">
+            <option value="7">Semanal (Cada 7 días)</option>
+            <option value="15">Quincenal (Cada 15 días)</option>
+            <option value="30">Mensual (Cada 30 días)</option>
+            <option value="custom">Personalizado en días...</option>
+          </select>
+        </div>
+        <div id="nuevo-div-dias-custom" class="hidden">
+          <label class="block text-zinc-300 mb-1 font-semibold">Número de días del periodo</label>
+          <input type="number" id="nuevo-san-dias-custom" min="1" placeholder="Ej. 10" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-zinc-300 mb-1 font-semibold">Fecha de Inicio del San</label>
+          <input type="date" id="nuevo-san-fecha-inicio" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400">
+        </div>
+      </div>
+
+      <div class="flex gap-2 justify-end pt-2 border-t border-zinc-800">
+        <button onclick="cerrarNuevoSanModal()" class="btn-3d py-2 px-4 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-xl text-xs font-bold">Cancelar</button>
+        <button onclick="crearNuevoSan()" class="btn-3d py-2 px-5 gold-gradient-bg text-zinc-950 rounded-xl text-xs font-extrabold">Crear San</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal EDITAR CONFIGURACIÓN DEL SAN ACTIVO -->
+  <div id="config-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-amber-500/40 rounded-2xl p-5 w-full max-w-sm space-y-4 gold-shadow">
+      <div class="flex justify-between items-center border-b border-zinc-800 pb-2">
+        <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider"><i class="fa-solid fa-sliders mr-1"></i> Reglas del San</h3>
+        <button onclick="cerrarConfigModal()" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-zinc-300 mb-1 font-semibold">Nombre del San</label>
+          <input type="text" id="san-monto-nombre" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400">
+        </div>
+        <div>
+          <label class="block text-zinc-300 mb-1 font-semibold">Monto Total del San ($)</label>
+          <input type="number" id="san-monto-total" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400">
+        </div>
+        <div>
+          <label class="block text-zinc-300 mb-1 font-semibold">Frecuencia de Pago</label>
+          <select id="san-frecuencia" onchange="toggleCustomDias()" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400">
+            <option value="7">Semanal (Cada 7 días)</option>
+            <option value="15">Quincenal (Cada 15 días)</option>
+            <option value="30">Mensual (Cada 30 días)</option>
+            <option value="custom">Personalizado en días...</option>
+          </select>
+        </div>
+        <div id="div-dias-custom" class="hidden">
+          <label class="block text-zinc-300 mb-1 font-semibold">Número de días del periodo</label>
+          <input type="number" id="san-dias-custom" min="1" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-zinc-300 mb-1 font-semibold">Fecha de Inicio del San</label>
+          <input type="date" id="san-fecha-inicio" class="w-full px-3 py-2 bg-zinc-950 border border-amber-500/30 text-white rounded-xl focus:outline-none focus:border-amber-400">
+        </div>
+      </div>
+
+      <div class="flex gap-2 justify-end pt-2 border-t border-zinc-800">
+        <button onclick="cerrarConfigModal()" class="btn-3d py-2 px-4 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-xl text-xs font-bold">Cancelar</button>
+        <button onclick="guardarConfigSan()" class="btn-3d py-2 px-5 gold-gradient-bg text-zinc-950 rounded-xl text-xs font-extrabold">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal personalizado para alertas/mensajes -->
+  <div id="custom-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-amber-500/40 rounded-2xl p-5 w-full max-w-xs space-y-4 gold-shadow text-center">
+      <div id="modal-icon" class="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto text-lg">
+        <i class="fa-solid fa-circle-info"></i>
+      </div>
+      <p id="modal-message" class="text-sm font-semibold text-zinc-200"></p>
+      <div class="flex gap-2 justify-center pt-2">
+        <button id="modal-cancel-btn" onclick="cerrarCustomModal(false)" class="btn-3d py-2 px-4 bg-zinc-800 text-zinc-300 rounded-xl text-xs font-bold">Cancelar</button>
+        <button id="modal-confirm-btn" onclick="cerrarCustomModal(true)" class="btn-3d py-2 px-5 gold-gradient-bg text-zinc-950 rounded-xl text-xs font-extrabold">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de Navegación Inferior -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-zinc-950/95 border-t border-amber-500/30 backdrop-blur-md shadow-2xl z-40">
+    <div class="max-w-md mx-auto flex justify-around items-center h-16 px-2">
+      <button onclick="switchTab('sanes')" id="nav-sanes" class="active-tab flex-1 flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-amber-400 transition">
+        <i class="fa-solid fa-house-user text-lg"></i>
+        <span class="text-[10px]">Mis Sanes</span>
+      </button>
+      <button onclick="switchTab('registrar')" id="nav-registrar" class="flex-1 flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-amber-400 transition">
+        <i class="fa-solid fa-user-plus text-lg"></i>
+        <span class="text-[10px]">Registrar</span>
+      </button>
+      <button onclick="switchTab('pagos')" id="nav-pagos" class="flex-1 flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-amber-400 transition relative">
+        <i class="fa-solid fa-receipt text-lg"></i>
+        <span class="text-[10px]">Pagos</span>
+        <span id="badge-pendientes" class="hidden absolute top-2 right-6 bg-amber-500 text-zinc-950 text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center shadow">!</span>
+      </button>
+      <button onclick="switchTab('resumen')" id="nav-resumen" class="flex-1 flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-amber-400 transition">
+        <i class="fa-solid fa-chart-pie text-lg"></i>
+        <span class="text-[10px]">Resumen</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- JS Principal & Registro de Service Worker -->
+  <script>
+    // Registrar Service Worker para funcionamiento como App Nativa
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(() => console.log('App lista y registrada como PWA nativa.'))
+          .catch(err => console.log('Error al registrar Service Worker: ', err));
+      });
+    }
+
+    let sanes = JSON.parse(localStorage.getItem('multi_sanes_db')) || [];
+    let currentSanId = localStorage.getItem('current_san_id') || null;
+    let currentStep = 1;
+    let modalCallback = null;
+    let clienteRecordatorioActual = null;
+    let clienteAbonoActual = null;
+    let campoCalculadoraDestino = 'monto';
+
+    if (sanes.length === 0) {
+      const defaultSan = {
+        id: 'san_' + Date.now(),
+        nombre: 'Mi Primer San',
+        montoTotal: 500,
+        frecuenciaDias: 7,
+        fechaInicio: new Date().toISOString().slice(0, 10),
+        participantes: []
+      };
+      sanes.push(defaultSan);
+      currentSanId = defaultSan.id;
+      guardarEnStorage();
+    } else if (!currentSanId || !sanes.find(s => s.id === currentSanId)) {
+      currentSanId = sanes[0].id;
+      localStorage.setItem('current_san_id', currentSanId);
+    }
+
+    function getSanActivo() {
+      return sanes.find(s => s.id === currentSanId) || sanes[0];
+    }
+
+    function guardarEnStorage() {
+      localStorage.setItem('multi_sanes_db', JSON.stringify(sanes));
+      localStorage.setItem('current_san_id', currentSanId);
+
+      const ind = document.getElementById('auto-save-indicator');
+      if (ind) {
+        ind.classList.remove('opacity-0');
+        ind.classList.add('opacity-100');
+        setTimeout(() => {
+          ind.classList.remove('opacity-100');
+          ind.classList.add('opacity-0');
+        }, 1500);
+      }
+    }
+
+    function showAlert(msg) {
+      document.getElementById('modal-message').innerText = msg;
+      document.getElementById('modal-cancel-btn').classList.add('hidden');
+      document.getElementById('custom-modal').classList.remove('hidden');
+      modalCallback = null;
+    }
+
+    function showConfirm(msg, callback) {
+      document.getElementById('modal-message').innerText = msg;
+      document.getElementById('modal-cancel-btn').classList.remove('hidden');
+      document.getElementById('custom-modal').classList.remove('hidden');
+      modalCallback = callback;
+    }
+
+    function cerrarCustomModal(isConfirm) {
+      document.getElementById('custom-modal').classList.add('hidden');
+      if (isConfirm && modalCallback) modalCallback();
+    }
+
+    function formatearFechaEspanol(fechaStr) {
+      if (!fechaStr) return 'Fecha no especificada';
+      const fecha = new Date(fechaStr + 'T00:00:00');
+      const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+      return `el día ${fecha.getDate()} de ${meses[fecha.getMonth()]} del año ${fecha.getFullYear()}`;
+    }
+
+    function formatearFechaHora(isoStr) {
+      if (!isoStr) return '-';
+      const d = new Date(isoStr);
+      const fecha = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+      const hora = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      return `${fecha} a las ${hora}`;
+    }
+
+    function calcularFechaTurno(turnoNum, san = getSanActivo()) {
+      if (!san || !san.fechaInicio) return '-';
+      const inicio = new Date(san.fechaInicio + 'T00:00:00');
+      inicio.setDate(inicio.getDate() + ((turnoNum - 1) * san.frecuenciaDias));
+      return formatearFechaEspanol(inicio.toISOString().slice(0, 10));
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-page').forEach(el => el.classList.add('hidden'));
+      document.getElementById('tab-' + tabId).classList.remove('hidden');
+
+      ['sanes', 'registrar', 'pagos', 'resumen'].forEach(id => {
+        const btn = document.getElementById('nav-' + id);
+        if (btn) btn.classList.remove('active-tab', 'text-amber-400');
+      });
+      const activeBtn = document.getElementById('nav-' + tabId);
+      if (activeBtn) activeBtn.classList.add('active-tab', 'text-amber-400');
+
+      window.scrollTo(0, 0);
+      render();
+    }
+
+    function abrirModalAbono(partId) {
+      const san = getSanActivo();
+      clienteAbonoActual = san.participantes.find(p => p.id === partId);
+      if (!clienteAbonoActual) return;
+
+      const totalAbonado = (clienteAbonoActual.historialPagos || []).reduce((acc, curr) => acc + curr.monto, 0);
+      const pendiente = Math.max(0, clienteAbonoActual.montoCuota - totalAbonado);
+
+      document.getElementById('abono-cliente-nombre').innerText = `${clienteAbonoActual.nombre} (Turno #${clienteAbonoActual.turno})`;
+      document.getElementById('abono-saldo-pendiente').innerText = '$' + pendiente.toFixed(2);
+      document.getElementById('abono-monto-ingresado').value = '';
+      document.getElementById('modal-abono').classList.remove('hidden');
+    }
+
+    function cerrarModalAbono() {
+      document.getElementById('modal-abono').classList.add('hidden');
+    }
+
+    function abonarSaldoTotal() {
+      if (!clienteAbonoActual) return;
+      const totalAbonado = (clienteAbonoActual.historialPagos || []).reduce((acc, curr) => acc + curr.monto, 0);
+      const pendiente = Math.max(0, clienteAbonoActual.montoCuota - totalAbonado);
+      document.getElementById('abono-monto-ingresado').value = pendiente.toFixed(2);
+    }
+
+    function confirmarAbono() {
+      if (!clienteAbonoActual) return;
+      const montoAbonado = parseFloat(document.getElementById('abono-monto-ingresado').value);
+
+      if (!montoAbonado || montoAbonado <= 0) {
+        return showAlert('Por favor ingresa un monto de abono válido.');
+      }
+
+      if (!clienteAbonoActual.historialPagos) clienteAbonoActual.historialPagos = [];
+
+      clienteAbonoActual.historialPagos.unshift({
+        fechaHora: new Date().toISOString(),
+        monto: montoAbonado
+      });
+
+      const totalAbonado = clienteAbonoActual.historialPagos.reduce((acc, curr) => acc + curr.monto, 0);
+      if (totalAbonado >= clienteAbonoActual.montoCuota) {
+        clienteAbonoActual.pagado = true;
+      }
+
+      guardarEnStorage();
+      cerrarModalAbono();
+      render();
+      showAlert('¡Abono registrado correctamente!');
+    }
+
+    function abrirModalCalculadora(destino = 'monto') {
+      campoCalculadoraDestino = destino;
+      const san = getSanActivo();
+      const cuotaSugerida = san.participantes.length > 0 ? (san.montoTotal / san.participantes.length) : san.montoTotal;
+      document.getElementById('calc-monto-total').value = cuotaSugerida;
+      document.getElementById('calc-num-cuotas').value = 2;
+      calcularCuotaIndividual();
+      document.getElementById('modal-calculadora').classList.remove('hidden');
+    }
+
+    function cerrarModalCalculadora() {
+      document.getElementById('modal-calculadora').classList.add('hidden');
+    }
+
+    function calcularCuotaIndividual() {
+      const montoTotal = parseFloat(document.getElementById('calc-monto-total').value) || 0;
+      const numCuotas = parseInt(document.getElementById('calc-num-cuotas').value) || 1;
+      const resultado = numCuotas > 0 ? (montoTotal / numCuotas) : 0;
+
+      document.getElementById('calc-resultado').innerText = '$' + resultado.toFixed(2);
+      document.getElementById('calc-detalle').innerText = `El monto total de $${montoTotal.toFixed(2)} se divide en ${numCuotas} pago(s) de $${resultado.toFixed(2)} cada uno.`;
+    }
+
+    function aplicarCuotaCalculada() {
+      const montoTotal = parseFloat(document.getElementById('calc-monto-total').value) || 0;
+      const numCuotas = parseInt(document.getElementById('calc-num-cuotas').value) || 1;
+      const resultado = numCuotas > 0 ? (montoTotal / numCuotas).toFixed(2) : 0;
+
+      if (campoCalculadoraDestino === 'quick') {
+        document.getElementById('quick-monto').value = resultado;
+      } else {
+        document.getElementById('monto').value = resultado;
+      }
+      cerrarModalCalculadora();
+    }
+
+    function abrirModalRecordatorio(partId) {
+      const san = getSanActivo();
+      clienteRecordatorioActual = san.participantes.find(p => p.id === partId);
+      if (!clienteRecordatorioActual) return;
+
+      document.getElementById('recordatorio-cliente-nombre').innerText = clienteRecordatorioActual.nombre;
+      document.getElementById('modal-recordatorio').classList.remove('hidden');
+    }
+
+    function cerrarModalRecordatorio() {
+      document.getElementById('modal-recordatorio').classList.add('hidden');
+    }
+
+    function enviarRecordatorioWhatsApp(tipo) {
+      if (!clienteRecordatorioActual) return;
+      const san = getSanActivo();
+      const p = clienteRecordatorioActual;
+      const fechaCobroStr = calcularFechaTurno(p.turno, san);
+      let mensaje = '';
+
+      if (tipo === 'preventivo') {
+        mensaje = `Hola ${p.nombre}, te envío este mensaje para recordarte amablemente que la fecha estimada para tu cuota de $${p.montoCuota} (Turno #${p.turno}) en el San "${san.nombre}" es ${fechaCobroStr}. ¡Muchas gracias!`;
+      } else if (tipo === 'vencimiento') {
+        mensaje = `Hola ${p.nombre}! Hoy corresponde la fecha estimada de cobro para tu cuota de $${p.montoCuota} (Turno #${p.turno}) del San "${san.nombre}". Quedo atento a tu confirmación. ¡Saludos!`;
+      } else if (tipo === 'urgente') {
+        mensaje = `Hola ${p.nombre}, te escribo para consultar sobre la cuota pendiente de $${p.montoCuota} correspondiente al Turno #${p.turno} de nuestro San "${san.nombre}". Por favor, cuando te sea posible contáctame. ¡Gracias!`;
+      }
+
+      const url = `https://api.whatsapp.com/send?phone=${p.telefono}&text=${encodeURIComponent(mensaje)}`;
+      window.open(url, '_blank');
+      cerrarModalRecordatorio();
+    }
+
+    function imprimirPlanilla() {
+      const san = getSanActivo();
+      if (!san || san.participantes.length === 0) {
+        return showAlert('No hay datos suficientes para imprimir la planilla.');
+      }
+
+      const win = window.open('', '_blank');
+      const filas = san.participantes.map(p => {
+        const fecha = calcularFechaTurno(p.turno, san);
+        const totalAbonado = (p.historialPagos || []).reduce((acc, curr) => acc + curr.monto, 0);
+        const ultPago = (p.historialPagos && p.historialPagos.length > 0) ? formatearFechaHora(p.historialPagos[0].fechaHora) : 'Sin abonos';
+        return `
+          <tr>
+            <td style="border:1px solid #ccc; padding:8px; text-align:center;">#${p.turno}</td>
+            <td style="border:1px solid #ccc; padding:8px;">${p.nombre}</td>
+            <td style="border:1px solid #ccc; padding:8px;">${p.telefono}</td>
+            <td style="border:1px solid #ccc; padding:8px; text-align:right;">$${p.montoCuota}</td>
+            <td style="border:1px solid #ccc; padding:8px; text-align:right;">$${totalAbonado.toFixed(2)}</td>
+            <td style="border:1px solid #ccc; padding:8px;">${fecha}</td>
+            <td style="border:1px solid #ccc; padding:8px; text-align:center;">${p.pagado ? 'COMPLETO' : 'PENDIENTE'}</td>
+            <td style="border:1px solid #ccc; padding:8px;">${ultPago}</td>
+          </tr>
+        `;
+      }).join('');
+
+      win.document.write(`
+        <html>
+        <head>
+          <title>Planilla - ${san.nombre}</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; }
+            h1 { margin-bottom: 5px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+            th { background: #f2f2f2; border: 1px solid #ccc; padding: 8px; text-align: left; }
+          </style>
+        </head>
+        <body>
+          <h1>Planilla de Control: ${san.nombre}</h1>
+          <p><strong>Monto Total Pozo:</strong> $${san.montoTotal} | <strong>Frecuencia:</strong> Cada ${san.frecuenciaDias} días | <strong>Fecha Inicio:</strong> ${formatearFechaEspanol(san.fechaInicio)}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Turno</th>
+                <th>Nombre</th>
+                <th>Teléfono</th>
+                <th>Cuota Total</th>
+                <th>Abonado</th>
+                <th>Fecha Estimada</th>
+                <th>Estado</th>
+                <th>Último Abono</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filas}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `);
+      win.document.close();
+      win.print();
+    }
+
+    function abrirModalHistorial(partId) {
+      const san = getSanActivo();
+      const p = san.participantes.find(item => item.id === partId);
+      if (!p) return;
+
+      document.getElementById('historial-nombre-cliente').innerText = `${p.nombre} (Turno #${p.turno})`;
+      const listaDiv = document.getElementById('historial-lista-pagos');
+
+      if (!p.historialPagos || p.historialPagos.length === 0) {
+        listaDiv.innerHTML = `
+          <div class="text-center py-6 text-zinc-500 text-xs">
+            <i class="fa-solid fa-receipt text-lg mb-1 block"></i>
+            Aún no se registran pagos en el historial de este participante.
+          </div>
+        `;
+      } else {
+        listaDiv.innerHTML = p.historialPagos.map((h, index) => `
+          <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-3 flex justify-between items-center text-xs">
+            <div>
+              <p class="font-bold text-emerald-400">+$${h.monto.toFixed(2)}</p>
+              <p class="text-[10px] text-zinc-400">${formatearFechaHora(h.fechaHora)}</p>
+            </div>
+            <button onclick="eliminarRegistroHistorial('${p.id}', ${index})" class="text-zinc-500 hover:text-rose-400 text-xs p-1" title="Eliminar registro">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('modal-historial').classList.remove('hidden');
+    }
+
+    function cerrarModalHistorial() {
+      document.getElementById('modal-historial').classList.add('hidden');
+    }
+
+    function eliminarRegistroHistorial(partId, index) {
+      showConfirm('¿Eliminar este registro individual del historial?', () => {
+        const san = getSanActivo();
+        const p = san.participantes.find(item => item.id === partId);
+        if (p && p.historialPagos) {
+          p.historialPagos.splice(index, 1);
+          const totalAbonado = p.historialPagos.reduce((acc, curr) => acc + curr.monto, 0);
+          p.pagado = totalAbonado >= p.montoCuota;
+          guardarEnStorage();
+          render();
+          abrirModalHistorial(partId);
+        }
+      });
+    }
+
+    function abrirModalClienteRapido() {
+      const san = getSanActivo();
+      document.getElementById('quick-nombre').value = '';
+      document.getElementById('quick-telefono').value = '';
+      document.getElementById('quick-turno').value = san.participantes.length + 1;
+      const sugerido = san.participantes.length > 0 ? (san.montoTotal / (san.participantes.length + 1)).toFixed(2) : san.montoTotal;
+      document.getElementById('quick-monto').value = sugerido;
+      document.getElementById('modal-cliente-rapido').classList.remove('hidden');
+    }
+
+    function cerrarModalClienteRapido() {
+      document.getElementById('modal-cliente-rapido').classList.add('hidden');
+    }
+
+    function guardarClienteRapido() {
+      const san = getSanActivo();
+      const nombre = document.getElementById('quick-nombre').value.trim();
+      const telefono = document.getElementById('quick-telefono').value.trim();
+      const turno = parseInt(document.getElementById('quick-turno').value);
+      const monto = parseFloat(document.getElementById('quick-monto').value);
+
+      if (!nombre || !telefono || !turno || !monto || turno <= 0 || monto <= 0) {
+        return showAlert('Por favor completa todos los campos correctamente.');
+      }
+
+      san.participantes.push({
+        id: 'p_' + Date.now(),
+        nombre,
+        telefono,
+        turno,
+        montoCuota: monto,
+        pagado: false,
+        historialPagos: []
+      });
+
+      san.participantes.sort((a, b) => a.turno - b.turno);
+      guardarEnStorage();
+      cerrarModalClienteRapido();
+      render();
+      showAlert('¡Cliente / Participante agregado con éxito!');
+    }
+
+    function abrirModalNuevoSan() {
+      document.getElementById('nuevo-san-nombre').value = '';
+      document.getElementById('nuevo-san-monto-total').value = '';
+      document.getElementById('nuevo-san-fecha-inicio').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('nuevo-san-frecuencia').value = '7';
+      document.getElementById('nuevo-div-dias-custom').classList.add('hidden');
+      document.getElementById('nuevo-san-modal').classList.remove('hidden');
+    }
+
+    function cerrarNuevoSanModal() {
+      document.getElementById('nuevo-san-modal').classList.add('hidden');
+    }
+
+    function toggleNuevoCustomDias() {
+      const val = document.getElementById('nuevo-san-frecuencia').value;
+      const divCustom = document.getElementById('nuevo-div-dias-custom');
+      if (val === 'custom') divCustom.classList.remove('hidden');
+      else divCustom.classList.add('hidden');
+    }
+
+    function crearNuevoSan() {
+      const nombre = document.getElementById('nuevo-san-nombre').value.trim();
+      const monto = parseFloat(document.getElementById('nuevo-san-monto-total').value);
+      const fecha = document.getElementById('nuevo-san-fecha-inicio').value;
+      const freqVal = document.getElementById('nuevo-san-frecuencia').value;
+      let dias = freqVal === 'custom' ? parseInt(document.getElementById('nuevo-san-dias-custom').value) : parseInt(freqVal);
+
+      if (!nombre || !monto || monto <= 0 || !fecha || !dias || dias <= 0) {
+        return showAlert('Por favor completa todos los campos con valores válidos.');
+      }
+
+      sanes.push({
+        id: 'san_' + Date.now(),
+        nombre,
+        montoTotal: monto,
+        frecuenciaDias: dias,
+        fechaInicio: fecha,
+        participantes: []
+      });
+
+      currentSanId = sanes[sanes.length - 1].id;
+      guardarEnStorage();
+      cerrarNuevoSanModal();
+      switchTab('registrar');
+    }
+
+    function seleccionarSan(id) {
+      currentSanId = id;
+      guardarEnStorage();
+      render();
+      switchTab('pagos');
+    }
+
+    function eliminarSan(e, id) {
+      e.stopPropagation();
+      if (sanes.length <= 1) return showAlert('Debes tener al menos un San registrado.');
+      showConfirm('¿Estás seguro de eliminar este San y a todos sus participantes?', () => {
+        sanes = sanes.filter(s => s.id !== id);
+        currentSanId = sanes[0].id;
+        guardarEnStorage();
+        render();
+      });
+    }
+
+    function configurarSanModal() {
+      const san = getSanActivo();
+      document.getElementById('san-monto-nombre').value = san.nombre;
+      document.getElementById('san-monto-total').value = san.montoTotal;
+      document.getElementById('san-fecha-inicio').value = san.fechaInicio;
+      const selectFreq = document.getElementById('san-frecuencia');
+      if ([7, 15, 30].includes(san.frecuenciaDias)) {
+        selectFreq.value = san.frecuenciaDias;
+        document.getElementById('div-dias-custom').classList.add('hidden');
+      } else {
+        selectFreq.value = 'custom';
+        document.getElementById('div-dias-custom').classList.remove('hidden');
+        document.getElementById('san-dias-custom').value = san.frecuenciaDias;
+      }
+      document.getElementById('config-modal').classList.remove('hidden');
+    }
+
+    function cerrarConfigModal() {
+      document.getElementById('config-modal').classList.add('hidden');
+    }
+
+    function toggleCustomDias() {
+      const val = document.getElementById('san-frecuencia').value;
+      const divCustom = document.getElementById('div-dias-custom');
+      if (val === 'custom') divCustom.classList.remove('hidden');
+      else divCustom.classList.add('hidden');
+    }
+
+    function guardarConfigSan() {
+      const san = getSanActivo();
+      const nombre = document.getElementById('san-monto-nombre').value.trim();
+      const monto = parseFloat(document.getElementById('san-monto-total').value);
+      const fecha = document.getElementById('san-fecha-inicio').value;
+      const freqVal = document.getElementById('san-frecuencia').value;
+      let dias = freqVal === 'custom' ? parseInt(document.getElementById('san-dias-custom').value) : parseInt(freqVal);
+
+      if (!nombre || !monto || monto <= 0 || !fecha || !dias || dias <= 0) {
+        return showAlert('Por favor completa todos los campos correctamente.');
+      }
+
+      san.nombre = nombre;
+      san.montoTotal = monto;
+      san.fechaInicio = fecha;
+      san.frecuenciaDias = dias;
+
+      guardarEnStorage();
+      cerrarConfigModal();
+      render();
+      showAlert('¡Reglas del San actualizadas con éxito!');
+    }
+
+    function changeStep(direction) {
+      if (direction === 1) {
+        if (currentStep === 1 && !document.getElementById('nombre').value.trim()) return showAlert('Ingresa el nombre del participante.');
+        if (currentStep === 2 && !document.getElementById('telefono').value.trim()) return showAlert('Ingresa el número de WhatsApp.');
+        if (currentStep === 3) {
+          const turno = document.getElementById('turno').value;
+          const monto = document.getElementById('monto').value;
+          if (!turno || !monto) return showAlert('Completa el turno y el monto de la cuota.');
+          
+          document.getElementById('summary-nombre').innerText = document.getElementById('nombre').value;
+          document.getElementById('summary-telefono').innerText = document.getElementById('telefono').value;
+          document.getElementById('summary-turno').innerText = '#' + turno;
+          document.getElementById('summary-monto').innerText = '$' + monto;
+          document.getElementById('summary-fecha-cobro').innerText = calcularFechaTurno(parseInt(turno));
+        }
+      }
+
+      currentStep += direction;
+      if (currentStep > 4) {
+        registrarParticipanteWizard();
+        return;
+      }
+      if (currentStep < 1) currentStep = 1;
+
+      actualizarVistaWizard();
+    }
+
+    function actualizarVistaWizard() {
+      for (let i = 1; i <= 4; i++) {
+        const stepEl = document.getElementById('step-' + i);
+        if (i === currentStep) stepEl.classList.remove('hidden');
+        else stepEl.classList.add('hidden');
+      }
+
+      document.getElementById('wizard-subtitle').innerText = `Paso ${currentStep} de 4`;
+      document.getElementById('wizard-step-badge').innerText = (currentStep * 25) + '%';
+      document.getElementById('progress-bar').style.width = (currentStep * 25) + '%';
+
+      const btnPrev = document.getElementById('btn-prev');
+      const btnNext = document.getElementById('btn-next');
+      if (currentStep === 1) btnPrev.classList.add('hidden');
+      else btnPrev.classList.remove('hidden');
+
+      if (currentStep === 4) btnNext.innerHTML = 'Guardar Participante <i class="fa-solid fa-check text-xs"></i>';
+      else btnNext.innerHTML = 'Siguiente <i class="fa-solid fa-arrow-right text-xs"></i>';
+    }
+
+    function usarCuotaCalculada() {
+      const san = getSanActivo();
+      const numPart = san.participantes.length + 1;
+      const cuotaAuto = numPart > 0 ? (san.montoTotal / numPart).toFixed(2) : san.montoTotal;
+      document.getElementById('monto').value = cuotaAuto;
+    }
+
+    function registrarParticipanteWizard() {
+      const san = getSanActivo();
+      const nombre = document.getElementById('nombre').value.trim();
+      const telefono = document.getElementById('telefono').value.trim();
+      const turno = parseInt(document.getElementById('turno').value);
+      const monto = parseFloat(document.getElementById('monto').value);
+
+      san.participantes.push({
+        id: 'p_' + Date.now(),
+        nombre,
+        telefono,
+        turno,
+        montoCuota: monto,
+        pagado: false,
+        historialPagos: []
+      });
+
+      san.participantes.sort((a, b) => a.turno - b.turno);
+      guardarEnStorage();
+
+      document.getElementById('wizardForm').reset();
+      currentStep = 1;
+      actualizarVistaWizard();
+      switchTab('pagos');
+      showAlert('¡Participante registrado con éxito!');
+    }
+
+    function eliminarParticipante(partId) {
+      showConfirm('¿Deseas eliminar a este participante?', () => {
+        const san = getSanActivo();
+        san.participantes = san.participantes.filter(p => p.id !== partId);
+        guardarEnStorage();
+        render();
+      });
+    }
+
+    function exportarDatos() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sanes, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `respaldo_sanes_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function borrarTodo() {
+      showConfirm('¿Estás seguro de borrar absolutamente todos los datos guardados?', () => {
+        localStorage.clear();
+        location.reload();
+      });
+    }
+
+    function render() {
+      const san = getSanActivo();
+      if (!san) return;
+
+      document.getElementById('header-san-title').innerText = san.nombre;
+      document.getElementById('header-san-subtitle').innerText = `${san.participantes.length} participantes activos`;
+      document.getElementById('pagos-san-nombre').innerText = san.nombre;
+      document.getElementById('info-san-nombre').innerText = san.nombre;
+      document.getElementById('info-monto-san').innerText = '$' + san.montoTotal;
+      document.getElementById('info-frecuencia').innerText = `Cada ${san.frecuenciaDias} días`;
+      document.getElementById('info-fecha-inicio').innerText = formatearFechaEspanol(san.fechaInicio);
+      
+      const cuotaSugerida = san.participantes.length > 0 ? (san.montoTotal / san.participantes.length).toFixed(2) : san.montoTotal;
+      document.getElementById('info-cuota-sugerida').innerText = '$' + cuotaSugerida + ' / periodo';
+      document.getElementById('label-cuota-auto').innerText = cuotaSugerida;
+
+      const listaSanesDiv = document.getElementById('lista-sanes-cards');
+      listaSanesDiv.innerHTML = sanes.map(s => {
+        const esActivo = s.id === currentSanId;
+        return `
+          <div onclick="seleccionarSan('${s.id}')" 
+               class="cursor-pointer btn-3d rounded-2xl p-4 flex justify-between items-center relative overflow-hidden transition-all duration-150 ${esActivo ? 'san-card-active border-2' : 'san-card-inactive border'}">
+            
+            ${esActivo ? `<div class="absolute -top-6 -right-6 w-16 h-16 bg-amber-400/10 rounded-full blur-xl pointer-events-none"></div>` : ''}
+
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-extrabold text-white tracking-wide">${s.nombre}</h3>
+                ${esActivo ? '<span class="text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full uppercase tracking-wider">Activo</span>' : ''}
+              </div>
+              <p class="text-xs text-zinc-400">Pozo: <span class="text-emerald-400 font-bold">$${s.montoTotal}</span> | ${s.participantes.length} personas</p>
+            </div>
+
+            <div class="flex items-center gap-2 z-10">
+              <span class="text-zinc-500 text-xs font-semibold flex items-center gap-1">
+                ${esActivo ? '<i class="fa-solid fa-chevron-right text-amber-400 text-xs"></i>' : '<i class="fa-solid fa-hand-pointer text-zinc-600 text-xs"></i>'}
+              </span>
+              <button onclick="eliminarSan(event, '${s.id}')" class="p-2 text-zinc-600 hover:text-rose-400 text-xs transition" title="Eliminar San">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('contadorClientes').innerText = `${san.participantes.length} registrados`;
+      let totalCobradoNum = 0;
+      let totalPendienteNum = 0;
+
+      const listaPartDiv = document.getElementById('listaParticipantes');
+      if (san.participantes.length === 0) {
+        listaPartDiv.innerHTML = `
+          <div class="bg-zinc-900/50 border border-dashed border-zinc-800 rounded-2xl p-6 text-center text-zinc-500 space-y-2">
+            <i class="fa-solid fa-users text-2xl mb-1 text-zinc-600"></i>
+            <p class="text-xs">No hay participantes registrados en este San.</p>
+            <button onclick="abrirModalClienteRapido()" class="btn-3d mt-2 px-3.5 py-1.5 gold-gradient-bg text-zinc-950 font-extrabold text-xs rounded-xl">Agregar cliente rápido</button>
+          </div>
+        `;
+      } else {
+        listaPartDiv.innerHTML = san.participantes.map(p => {
+          const totalAbonado = (p.historialPagos || []).reduce((acc, curr) => acc + curr.monto, 0);
+          const pendiente = Math.max(0, p.montoCuota - totalAbonado);
+
+          totalCobradoNum += Math.min(p.montoCuota, totalAbonado);
+          totalPendienteNum += pendiente;
+
+          const fechaCobroStr = calcularFechaTurno(p.turno, san);
+          const ultPago = (p.historialPagos && p.historialPagos.length > 0) ? formatearFechaHora(p.historialPagos[0].fechaHora) : null;
+
+          return `
+            <div class="bg-zinc-900/90 rounded-2xl border ${p.pagado ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-amber-500/30'} p-3.5 space-y-2 shadow-sm">
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full">Turno #${p.turno}</span>
+                  <h4 class="text-sm font-bold text-white mt-1">${p.nombre}</h4>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button onclick="abrirModalHistorial('${p.id}')" class="btn-3d w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xs" title="Ver Historial">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                  </button>
+                  <button onclick="abrirModalRecordatorio('${p.id}')" class="btn-3d w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-sm" title="Enviar WhatsApp">
+                    <i class="fa-brands fa-whatsapp"></i>
+                  </button>
+                  <button onclick="eliminarParticipante('${p.id}')" class="btn-3d w-8 h-8 rounded-xl bg-zinc-800 text-zinc-400 hover:text-rose-400 flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Estado de Abonos -->
+              <div class="bg-zinc-950/60 p-2 rounded-xl border border-zinc-800/80 flex justify-between items-center text-xs">
+                <div>
+                  <p class="text-[9px] text-zinc-500">Abonado / Cuota:</p>
+                  <p class="font-bold ${p.pagado ? 'text-emerald-400' : 'text-zinc-200'}">$${totalAbonado.toFixed(2)} / $${p.montoCuota.toFixed(2)}</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-[9px] text-zinc-500">Resta:</p>
+                  <p class="font-bold ${pendiente === 0 ? 'text-emerald-400' : 'text-amber-400'}">$${pendiente.toFixed(2)}</p>
+                </div>
+              </div>
+
+              ${ultPago ? `<p class="text-[10px] text-emerald-400/90 font-medium"><i class="fa-solid fa-check-double text-[9px] mr-1"></i> Último abono: ${ultPago}</p>` : ''}
+
+              <div class="flex justify-between items-center text-xs pt-1 border-t border-zinc-800">
+                <div>
+                  <p class="text-zinc-500 text-[10px]">Cobro estimado:</p>
+                  <p class="font-semibold text-amber-300 text-[11px]">${fechaCobroStr}</p>
+                </div>
+                <div>
+                  <button onclick="abrirModalAbono('${p.id}')" class="btn-3d px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 ${p.pagado ? 'bg-emerald-500 text-zinc-950' : 'gold-gradient-bg text-zinc-950'}">
+                    <i class="fa-solid ${p.pagado ? 'fa-circle-check' : 'fa-plus'}"></i> ${p.pagado ? 'Pagado' : 'Abonar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('totalCobrado').innerText = '$' + totalCobradoNum.toFixed(2);
+      document.getElementById('totalPendiente').innerText = '$' + totalPendienteNum.toFixed(2);
+      document.getElementById('totalGlobal').innerText = '$' + (totalCobradoNum + totalPendienteNum).toFixed(2);
+      
+      const totalGlobalCalc = totalCobradoNum + totalPendienteNum;
+      const porcentajeProgreso = totalGlobalCalc > 0 ? (totalCobradoNum / totalGlobalCalc) * 100 : 0;
+      document.getElementById('progress-monto').style.width = porcentajeProgreso + '%';
+
+      const badgePendientes = document.getElementById('badge-pendientes');
+      if (totalPendienteNum > 0) badgePendientes.classList.remove('hidden');
+      else badgePendientes.classList.add('hidden');
+    }
+
+    render();
+    actualizarVistaWizard();
+  </script>
+</body>
+</html>
